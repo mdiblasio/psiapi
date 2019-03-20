@@ -41,7 +41,6 @@ const FIELDS = {
 };
 
 module.exports = {
-  PSI_API_KEY,
   PSI_API_URL,
   MAX_PENDING_TESTS,
   FIELDS
