@@ -4,7 +4,7 @@ const config = require('./config.js');
 var fs = require('fs');
 var fetch = require('node-fetch');
 
-let inputCSV;
+let inputCSV, key;
 let log = console.log;
 // let key = config.PSI_API_KEY;
 
