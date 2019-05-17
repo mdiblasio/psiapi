@@ -4,9 +4,9 @@ const config = require('./config.js');
 var fs = require('fs');
 var fetch = require('node-fetch');
 
-let inputCSV, key;
+let inputCSV;
 let log = console.log;
-// let key = config.PSI_API_KEY;
+let key = config.PSI_API_KEY || null;
 
 process.argv.forEach((arg, index) => {
   if (process.argv[index] === '--key') {
@@ -45,16 +45,12 @@ function fetchPSI(psiKey, url) {
   psiAPI.push('&');
   psiAPI.push(`url=${encodeURI(url)}`);
 
-  // console.log(`\n${psiAPI.join('')}\n`);
-
   return fetch(psiAPI.join(''));
 }
 
 // return only scores we need
 function getScores(results) {
   let scores = {};
-
-  // console.log(JSON.stringify(results));
 
   Object.keys(config.FIELDS).forEach(field => {
 
@@ -64,20 +60,13 @@ function getScores(results) {
 
       tmpResult = eval(`results${fieldKey}`);
 
-      // log(`key = ${fieldKey}`);
-      // log(`${field} = ${tmpResult}`);
-
       let result = "-";
 
-      // log(`type = ${type}`);
-      // console.group();
       switch (type) {
         case 'score':
           result = Math.floor(tmpResult * 100);
           break;
         case 'value':
-          // result = Math.round(tmpResult * 10) / 10;
-          // result = tmpResult / 1000;
           result = (tmpResult / 1000).toString().match(/\d*\.\d/)[0];
           break;
         case 'percentile':
@@ -88,13 +77,8 @@ function getScores(results) {
           break;
         case 'scriptEvaluation':
           Object.keys(tmpResult).forEach(key => {
-            // log(`>>> ${tmpResult[key].group}`);
             if (tmpResult[key].group == "scriptEvaluation") {
-              // log(`HERE!`);
-              // log(`tmpResult[key].duration / 1000 = ${tmpResult[key].duration / 1000}`);
-              // console.log((tmpResult[key].duration / 1000).toString().match(/\d*\.\d/));
               result = (tmpResult[key].duration / 1000).toString().match(/\d*\.\d/)[0];
-              // tmpResult = tmpResult[key].duration;
             }
           });
           break;
@@ -102,7 +86,6 @@ function getScores(results) {
           Object.keys(tmpResult).forEach(key => {
             if (tmpResult[key].group == "parseHTML") {
               result = (tmpResult[key].duration / 1000).toString().match(/\d*\.\d{2}/)[0];
-              // tmpResult = tmpResult[key].duration;
             }
           });
           break;
@@ -110,35 +93,14 @@ function getScores(results) {
           result = tmpResult;
           break;
       }
-      // log(`${field} = ${result} (${tmpResult})`);
 
       scores[field] = result;
 
-      // log(`key = ${fieldKey}`);
-      // log(`eval(results${fieldKey})`);
-
     } catch (e) {
-      // log(`Error in getScores for key: ${field}`);
-      // console.log(results);
-      // console.log(e);
       scores[field] = "-";
     }
 
-    // console.groupEnd();
   });
-
-  // let auditRefs = results.lighthouseResult.categories.performance.auditRefs;
-
-  // auditRefs.forEach(audit => {
-  //   let score = {};
-
-  //   score.id = results.lighthouseResult.audits[audit.id].id;
-  //   score.score = Math.floor(results.lighthouseResult.audits[audit.id].score * 100);
-  //   score.displayValue = results.lighthouseResult.audits[audit.id].displayValue;
-
-  //   scores[score.id] = score;
-  // });
-
   return scores;
 }
 
@@ -162,16 +124,10 @@ function writeHeader(ws) {
   let header = [];
 
   header.push('URL');
-  // header.push('LH Score');
 
   Object.keys(config.FIELDS).forEach(field => {
     header.push(field);
   });
-
-  // HEADERS.forEach(_header => {
-  //   header.push(`${_header} (Value)`);
-  //   header.push(`${_header} (Score)`);
-  // });
 
   ws.write(header.join('|'));
   ws.write('\n');
@@ -204,25 +160,20 @@ async function main(psiKey, urlCSV) {
 
         let line = [];
         line.push(urls[testID]);
-        // line.push(Math.floor(results.lighthouseResult.categories.performance.score * 100));
 
         Object.keys(config.FIELDS).forEach(header => {
           line.push(scores[header]);
-          // line.push(scores[header].score);
         });
 
         let ss = [];
         ss.push(urls[testID]);
-        // ss.push(getScreenshot(results));
 
-        // writeLine(screenshots, ss.join('|'));
         writeLine(ws, line.join('|'));
       }).catch(e => {
         console.log(`ERROR: Test #${testID} failed (${urls[testID]})`);
         console.group();
         console.log(e);
         console.groupEnd();
-        // console.log(e)
       });
 
     promises.push(promise);
